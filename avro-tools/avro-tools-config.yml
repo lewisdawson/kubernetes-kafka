@@ -4,6 +4,40 @@ metadata:
   namespace: kafka
 apiVersion: v1
 data:
+  init-connect.sh: |-
+    #!/bin/bash
+    set -x
+    cp /etc/kafka-configmap/connect-log4j.properties /etc/kafka/
+    cp /etc/kafka-configmap/connect-distributed.properties /etc/kafka/
+
+  connect-distributed.properties: |-
+    # Custom
+    bootstrap.servers=PLAINTEXT://bootstrap.kafka:9092
+    group.id=connect-cluster
+    key.converter=io.confluent.connect.avro.AvroConverter
+    key.converter.schema.registry.url=http://avro-schemas.kafka
+    value.converter=io.confluent.connect.avro.AvroConverter
+    value.converter.schema.registry.url=http://avro-schemas.kafka
+    key.converter.schemas.enable=true
+    value.converter.schemas.enable=true
+    internal.key.converter=org.apache.kafka.connect.json.JsonConverter
+    internal.value.converter=org.apache.kafka.connect.json.JsonConverter
+    internal.key.converter.schemas.enable=false
+    internal.value.converter.schemas.enable=false
+    offset.storage.topic=connect-offsets
+    offset.storage.replication.factor=1
+    config.storage.topic=connect-configs
+    config.storage.replication.factor=1
+    status.storage.topic=connect-status
+    status.storage.replication.factor=1
+    offset.flush.interval.ms=10000
+    rest.port=8083
+    plugin.path=/usr/share/java
+    zookeeper.connect=zookeeper:2181
+
+    access.control.allow.methods=GET,POST,PUT,OPTIONS
+    access.control.allow.origin=*
+
   schema-registry.properties: |-
     port=80
     listeners=http://0.0.0.0:80
@@ -41,3 +75,14 @@ data:
 
     log4j.logger.org.apache.kafka.clients.Metadata=DEBUG, stdout
     log4j.logger.org.apache.kafka.clients.consumer.internals.AbstractCoordinator=INFO, stdout
+
+  connect-log4j.properties: |-
+    log4j.rootLogger=INFO, stdout
+
+    log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+    log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+    log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c:%L)%n
+
+    log4j.logger.org.apache.zookeeper=ERROR
+    log4j.logger.org.I0Itec.zkclient=ERROR
+    log4j.logger.org.reflections=ERROR

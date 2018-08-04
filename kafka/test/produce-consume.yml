@@ -67,7 +67,7 @@ spec:
         - --partitions
         -   "1"
         - --replication-factor
-        -   "3"
+        -   "1"
       restartPolicy: Never
 ---
 apiVersion: apps/v1beta2

@@ -1,0 +1,58 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: connect
+  namespace: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connect
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: connect
+    spec:
+      initContainers:
+      - name: init-config
+        image: solsson/kafka-initutils@sha256:18bf01c2c756b550103a99b3c14f741acccea106072cd37155c6d24be4edd6e2
+        command: ['/bin/bash', '/etc/kafka-configmap/init-connect.sh']
+        volumeMounts:
+        - name: configmap
+          mountPath: /etc/kafka-configmap
+        - name: config
+          mountPath: /etc/kafka
+      containers:
+      - name: connect
+        image: confluentinc/cp-kafka-connect:4.1.2
+        env:
+        - name: CONNECT_LOG4J_OPTS
+          value: -Dlog4j.configuration=file:/etc/kafka/connect-log4j.properties
+        command:
+        - connect-distributed
+        - /etc/kafka/connect-distributed.properties
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8083
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8083
+          initialDelaySeconds: 60
+        ports:
+        - containerPort: 8083
+        volumeMounts:
+        - name: config
+          mountPath: /etc/kafka
+      volumes:
+      - name: configmap
+        configMap:
+          name: avro-tools-config
+      - name: config
+        emptyDir: {}
